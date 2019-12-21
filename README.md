@@ -24,6 +24,7 @@ git clone https://github.com/philipbl/duplicate-images.git
 
 Next, download all required modules. This script has only been tested with Python 3. I would suggest that you make a virtual environment, setting Python 3 as the default python executable (`mkvirtualenv --python=/usr/local/bin/python3 <name>`)
 ```bash
+pip install -U flask-cors
 pip install -r requirements.txt
 ```
 

@@ -38,6 +38,7 @@ import time
 import webbrowser
 
 from flask import Flask, send_from_directory
+from flask_cors import CORS
 import imagehash
 from jinja2 import Template, FileSystemLoader, Environment
 from more_itertools import chunked
@@ -88,11 +89,16 @@ def get_image_files(path):
             file_name.endswith('.gif') or  \
             file_name.endswith('.tiff')
 
-    path = os.path.abspath(path)
-    for root, dirs, files in os.walk(path):
-        for file in files:
-            if is_image(file):
-                yield os.path.join(root, file)
+    cprint("file/dir {}".format(path), "blue")
+    if os.path.isdir(path) == True:
+        path = os.path.abspath(path)
+        for root, dirs, files in os.walk(path):
+            for file in files:
+                if is_image(file):
+                    yield os.path.join(root, file)
+    else:
+        if is_image(path):
+            yield os.path.join("", path)
 
 
 def hash_file(file):
@@ -206,7 +212,13 @@ def same_time(dup):
 
 
 def find(db, match_time=False):
-    dups = db.aggregate([{
+    dups = db.aggregate([
+    {
+        "$sort" : { 
+            "file_size" : -1
+        }
+    },
+    {
         "$group": {
             "_id": "$hash",
             "total": {"$sum": 1},
@@ -262,6 +274,7 @@ def display_duplicates(duplicates, db):
         regex = '.*?'
 
     app = Flask(__name__)
+    CORS(app)
     app.url_map.converters['everything'] = EverythingConverter
 
     def render(duplicates, current, total):
@@ -273,7 +286,7 @@ def display_duplicates(duplicates, db):
 
     with TemporaryDirectory() as folder:
         # Generate all of the HTML files
-        chunk_size = 25
+        chunk_size = 100
         for i, dups in enumerate(chunked(duplicates, chunk_size)):
             with open('{}/{}.html'.format(folder, i), 'w') as f:
                 f.write(render(dups,
